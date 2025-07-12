@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Marcus Aurelius Voice Assistant</title>
+</head>
+<body>
+  <h1>🎙️ Talk to Marcus Aurelius</h1>
+  <form id="upload-form">
+    <input type="file" name="file" id="file" accept="audio/*" required>
+    <button type="submit">Send</button>
+  </form>
+  <div id="results"></div>
+
+  <script>
+    document.getElementById("upload-form").onsubmit = async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append("file", document.getElementById("file").files[0]);
+
+      const res = await fetch("/transcribe/", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      document.getElementById("results").innerHTML =
+        "<p><strong>You said:</strong> " + data.transcript + "</p>" +
+        "<p><strong>Marcus says:</strong> " + data.response + "</p>";
+    };
+  </script>
+</body>
+</html>
