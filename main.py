@@ -51,10 +51,8 @@ async def transcribe_audio(file: UploadFile = File(...)):
         print("📥 Response Text:", tts_response.text)
 
         if tts_response.status_code != 200:
-            return JSONResponse(
-                status_code=500,
-                content={"error": "Text-to-speech failed", "details": tts_response.text}
-            )
+            return {"error": "Text-to-speech failed", "details": response.text}
+            
 
         audio_path = "static/marcus_reply.mp3"
         with open(audio_path, "wb") as f:
