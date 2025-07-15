@@ -4,58 +4,76 @@
   <title>Marcus Aurelius</title>
 </head>
 <body>
-  <h1>Welcome to Marcus Aurelius</h1>
-  <p>Ask your question aloud when ready...</p>
+  <h1>Welcome to the Marcus Aurelius Experience</h1>
+  <p>Click the button and ask your question aloud when ready...</p>
   <button onclick="startRecording()">🎙️ Start Speaking</button>
   <p id="transcript"></p>
   <p id="response"></p>
   <audio id="marcus-audio" controls style="display: none;"></audio>
 
   <script>
-    let mediaRecorder;
-    let audioChunks = [];
+  let mediaRecorder;
+  let audioChunks = [];
 
-    async function startRecording() {
-      document.getElementById("transcript").textContent = "🎙️ Listening...";
-      document.getElementById("response").textContent = "";
-      document.getElementById("marcus-audio").style.display = "none";
+  async function startRecording() {
+    document.getElementById("transcript").textContent = "🎙️ Listening...";
+    document.getElementById("response").textContent = "";
+    document.getElementById("marcus-audio").style.display = "none";
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
 
-      mediaRecorder.ondataavailable = event => {
-        audioChunks.push(event.data);
-      };
+    mediaRecorder.ondataavailable = event => {
+      audioChunks.push(event.data);
+    };
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-        audioChunks = [];
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      audioChunks = [];
 
-        const formData = new FormData();
-        formData.append("file", audioBlob, "audio.wav");
+      const formData = new FormData();
+      formData.append("file", audioBlob, "audio.wav");
 
+      try {
         const res = await fetch("/transcribe/", {
           method: "POST",
           body: formData
         });
 
+        console.log("🚨 Transcribe response status:", res.status);
         const data = await res.json();
+        console.log("✅ Transcribe API returned:", data);
 
-        document.getElementById("transcript").textContent = "📝 Transcript: " + data.transcript;
-        document.getElementById("response").textContent = "🧠 Marcus says: " + data.response;
+        if (data && data.transcript && data.response && data.audio_url) {
+          document.getElementById("transcript").textContent = "📝 Transcript: " + data.transcript;
+          document.getElementById("response").textContent = "🧠 Marcus says: " + data.response;
 
-        const audioPlayer = document.getElementById("marcus-audio");
-        audioPlayer.src = "data:audio/mp3;base64," + data.audio_base64;
-        audioPlayer.style.display = "block";
-        audioPlayer.play();
-      };
+          const audioPlayer = document.getElementById("marcus-audio");
+          audioPlayer.src = data.audio_url;
+          audioPlayer.style.display = "block";
+          
+          audioPlayer.oncanplaythrough = () => {
+              audioPlayer.play().catch(err => console.error("❌ Audio playback error:", err));
+            };
+          } else {
+            document.getElementById("transcript").textContent = "❌ Error occurred";
+            console.error("❌ Unexpected response from backend:", data);
+          }
+      } catch (err) {
+        document.getElementById("transcript").textContent = "❌ Request failed";
+        console.error("❌ Failed to reach /transcribe:", err);
+      }
+    };
 
-      mediaRecorder.start();
+    mediaRecorder.start();
 
-      setTimeout(() => {
-        mediaRecorder.stop();
-      }, 5000);
-    }
+    // Stop recording after 5 seconds
+    setTimeout(() => {
+      mediaRecorder.stop();
+    }, 5000);
+  }
+</script>
+
   </script>
 </body>
 </html>
